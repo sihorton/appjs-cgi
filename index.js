@@ -29,27 +29,34 @@ var spawn = require('child_process').spawn
 function router(params) {
 	//create cgi environment variables.
 	var reqEnv = {};
-	for(var keys = Object.keys(process.env), l = keys.length; l; --l) {
+	/*for(var keys = Object.keys(process.env), l = keys.length; l; --l) {
 	   reqEnv[ keys[l-1] ] = process.env[ keys[l-1] ];
-	}
+	}*/
 	for(var keys = Object.keys(params.env), l = keys.length; l; --l)	{
 	   reqEnv[ keys[l-1] ] = params.env[ keys[l-1] ];
 	}
-				
+	function trim(str) {
+		return str.replace(/^\s\s*/, '').replace(/\s\s*$/, '');
+	}
+	
 	var cgiRouter = function router(request, response, next){
+		//return next();
 		var url = request.pathname;
 		if (request.pathname == '/') {
-			url = params.directoryIndex;
+			//url = params.directoryIndex;
 		}
 		if (path.extname(url) == params.ext) {
-			var exec = require('child_process').exec;
-			var p = path.resolve(reqEnv['DOCUMENT_ROOT']+url);
 			
+		var exec = require('child_process').exec;
+			var p = path.resolve(reqEnv['DOCUMENT_ROOT']+url);
 			//set environment variables for this request
 			reqEnv['SCRIPT_NAME'] = url;
 			reqEnv['PATH_INFO'] = '';//not supported a the moment.
 			reqEnv['PATH_TRANSLATED'] = reqEnv['DOCUMENT_ROOT']+url;
-			reqEnv['QUERY_STRING'] = req.uri.query || '';
+			reqEnv['QUERY_STRING'] = '';
+			for(var p in request.params) {
+				reqEnv['QUERY_STRING'] += p+"="+encodeURIComponent(request.params[p])+"&";
+			}
 			reqEnv['REQUEST_METHOD'] = request.method;
 			
 			//add request headers, "User-Agent" -> "HTTP_USER_AGENT"
@@ -67,33 +74,40 @@ function router(params) {
 				reqEnv['AUTH_TYPE'] = request.headers.authorization.split(' ')[0];
 			}
 			//user defined fn can alter the env for each request
-			if (params.envFn) reqEnv = params.envFn(reqEnv);
-						
-			var cmd = params.bin+' "'+p+'"';
+			//if (params.envFn) reqEnv = params.envFn(reqEnv);
+	
+			var cmd = params.bin;
 			if (params.debug) {
 				console.log("request:"+url);
-				console.log("running:"+cmd);
 			}
-			//we could merge params.env with process.env
+			//response.setHeader('Transfer-Encoding', 'chunked');
 			var cgi = spawn(params.bin, [], {
-			  'env': params.env
+			  'env': reqEnv
 			});
 			//request body is just sent directly to stdin of CGI for it to handle.
 			request.pipe(cgi.stdin);
+			if (params.sterr) {
+				cgi.stderr.on('data',params.sterr);
+			}
 			var headersSent = false;
-			cgi.stout.on('data',function(data) {
+			var allData = "";
+			cgi.stdout.on('data',function(data) {
 				if (headersSent) {
 					//stream data to browser as soon as it is available.
+					console.log(data.toString());
 					response.write(data);
 				} else {
-					var lines = data.toString().split("\n");
+					
+					var lines = data.toString().split("\r\n");
 					//set headers until you get a blank line...
 					for(var l=0;l<lines.length;l++) {
 						if (lines[l] == "") {
 							response.writeHead(200);
 							headersSent = true;
-							//send rest asap
-							response.write(lines.slice(l+1).join('\n'));
+							//Seems like AppJS response does not support streaming.
+							//response.write(lines.slice(l+1).join('\n'));
+							allData += lines.slice(l+1).join('\r\n');
+							break;
 						} else {
 							//set header
 							var header = lines[l].split(":");
@@ -101,13 +115,11 @@ function router(params) {
 						}
 					}
 				}
+				
 			});
-			cgi.stout.on('end',function() {
-				response.end();
+			cgi.stdout.on('end',function() {
+				response.end(allData);
 			});
-			if (params.sterr) {
-				cgi.sterr.on('data',params.sterr);
-			}
 		} else {
 			next();
 		}
