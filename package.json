@@ -1,0 +1,16 @@
+{
+  "name": "appjs-cgi",
+  "version": "0.1.0",
+  "description": "Router that spawns cgi scripts",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sihorton/appjs-cgi.git"
+  },
+  "keywords": [
+    "appjs",
+    "cgi"
+  ],
+  "author": "sihorton",
+  "license": "MIT"
+}
