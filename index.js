@@ -1,3 +1,6 @@
+/*
+* @TODO: do a stat of the script, if a directory use directoryIndex. 
+*/
 /**
 app.router.use(require('appjs-cgi').router({
 	env:{
@@ -7,14 +10,14 @@ app.router.use(require('appjs-cgi').router({
 		,'GATEWAY_INTERFACE':"CGI/1.1"
 		,'SERVER_NAME':"appjs.org"
 		,'SERVER_PORT':80
-		,'DOCUMENT_ROOT':'__path_to_htdocs__'
-	},defaultIndex:'/index.php'           //
-	,ext:'.php'                          //extension
-	,bin:'___path_to_php_exe__'          //path to executable
-	,debug:true
-	,sterr:function()                          //recieves errors from cgi to eg write to a server log.
-	,envFn:function(env) {
-		//view env vars for this request and modify them...	
+		,'DOCUMENT_ROOT':__dirname+'/content/'
+	},directoryIndex:'index.php'         //if you navigate to a directory this file will be tried.
+	,ext:'.php'                          //if request matches extension then cgi router will be triggered
+	,bin:'___path_to_cgi_exe__'          //path to cgi executable
+	,debug:true                          //if true outputs request & cgi call to console.
+	,sterr:function(err){}               //function to handle any errors from cgi script, e.g. write to a server log.
+	,envFn:function(env) {               //triggered for each request before script execution.
+		//view env vars for this request and modify them... 
 		return env;
 	}
 }));
@@ -36,7 +39,7 @@ function router(params) {
 	var cgiRouter = function router(request, response, next){
 		var url = request.pathname;
 		if (request.pathname == '/') {
-			url = params.defaultIndex;
+			url = params.directoryIndex;
 		}
 		if (path.extname(url) == params.ext) {
 			var exec = require('child_process').exec;
@@ -111,3 +114,4 @@ function router(params) {
 	}
 	return cgiRouter;
 }
+module.exports.router = router;

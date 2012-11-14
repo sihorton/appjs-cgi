@@ -1,6 +1,6 @@
 {
   "name": "appjs-cgi",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Router that spawns cgi scripts",
   "main": "index.js",
   "repository": {
