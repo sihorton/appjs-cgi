@@ -21,7 +21,7 @@ Quick Start
 		,'DOCUMENT_ROOT':__dirname+'/content/'
 	},directoryIndex:'index.php'         //if you navigate to a directory this file will be tried.
 	,ext:'.php'                          //if request matches extension then cgi router will be triggered
-	,bin:'___path_to_php_exe__'          //path to cgi executable
+	,bin:'___path_to_cgi_exe__'          //path to cgi executable
 	,debug:true                          //if true outputs request & cgi call to console.
 	,sterr:function(err){}               //function to handle any errors from cgi script, e.g. write to a server log.
 	,envFn:function(env) {               //triggered for each request before script execution.
